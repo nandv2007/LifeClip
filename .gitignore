@@ -1,0 +1,25 @@
+# ── Secrets & runtime state — NEVER commit ───────────────────────────────
+.env
+**/.env
+backend/var/
+**/*.db
+*.sqlite
+*.sqlite3
+
+# ── Python ───────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.pytest_tmp/
+
+# ── Node / Frontend ──────────────────────────────────────────────────────
+node_modules/
+dist/
+frontend/dist/
+
+# ── Tooling / OS ─────────────────────────────────────────────────────────
+.vscode/
+.DS_Store
+*.log

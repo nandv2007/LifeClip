@@ -1,0 +1,23 @@
+# Optional: production-grade PostgreSQL for LifeClip.
+# Usage: docker compose up -d   then set DATABASE_URL in backend/.env to
+#   postgresql+psycopg://lifeclip:lifeclip@localhost:5432/lifeclip
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: lifeclip
+      POSTGRES_PASSWORD: lifeclip       # change me for a real deployment
+      POSTGRES_DB: lifeclip
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lifeclip"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
