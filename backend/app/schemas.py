@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 CATEGORIES = (
     "event", "receipt", "ticket", "notes", "menu", "product", "document", "other",
@@ -18,6 +18,37 @@ class HealthOut(BaseModel):
     database: str
     cloudinary_configured: bool
     time: datetime
+
+
+class SignUpIn(BaseModel):
+    username: str = Field(min_length=3, max_length=30)
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=128)
+
+    @field_validator("username")
+    @classmethod
+    def _valid_username(cls, value: str) -> str:
+        cleaned = value.strip()
+        if (
+            not cleaned
+            or not cleaned.isascii()
+            or not cleaned[0].isalnum()
+            or any(not (char.isalnum() or char == "_") for char in cleaned)
+        ):
+            raise ValueError("username may contain letters, numbers and underscores")
+        return cleaned
+
+
+class SignInIn(BaseModel):
+    identifier: str = Field(min_length=3, max_length=254)
+    password: str = Field(min_length=1, max_length=128)
+
+
+class AuthUserOut(BaseModel):
+    id: str
+    username: str
+    email: str
+    created_at: datetime
 
 
 class UploadSignatureIn(BaseModel):

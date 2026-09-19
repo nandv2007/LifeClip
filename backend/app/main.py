@@ -24,7 +24,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from . import __version__
 from .config import get_settings
 from .db import SessionLocal, engine, init_db
-from .routers import actions, clips, health, settings as settings_router, uploads
+from .routers import actions, auth, clips, health, settings as settings_router, uploads
 
 logging.basicConfig(
     level=logging.INFO,
@@ -47,7 +47,7 @@ _s = get_settings()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_s.cors_origins,
-    allow_credentials=False,
+    allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", _s.session_header],
 )
@@ -129,13 +129,16 @@ def _recover_interrupted_runs() -> None:
 
 
 def _purge_expired() -> None:
-    """Retention: permanently delete clips older than each session's setting."""
-    from .models import Clip, SessionSettings
+    """Purge expired login rows and clips past each account's retention."""
+    from .models import AuthSession, Clip, SessionSettings
     from .services.cloudinary_service import delete_asset
 
     db = SessionLocal()
     try:
         now = datetime.now(timezone.utc)
+        db.query(AuthSession).filter(AuthSession.expires_at <= now).delete(
+            synchronize_session=False
+        )
         rows = (
             db.query(Clip, SessionSettings.retention_days)
             .join(SessionSettings, SessionSettings.session_id == Clip.session_id)
@@ -180,6 +183,7 @@ def startup() -> None:
 # ----------------------------------------------------------------- routers
 
 app.include_router(health.router)
+app.include_router(auth.router)
 app.include_router(uploads.router)
 app.include_router(clips.router)
 app.include_router(actions.router)

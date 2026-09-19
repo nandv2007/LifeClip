@@ -2,10 +2,11 @@
 // {"error": {"code", "message"}} — surfaced here as ApiError with a
 // human-readable message (never raw technical noise).
 
-import { getSessionToken, resetSessionToken } from './session'
+import { getSessionToken } from './session'
 import type {
   ActionConfirmOut,
   AnalysisStatusOut,
+  AuthUser,
   ClipDetail,
   ClipListItem,
   HealthOut,
@@ -34,13 +35,13 @@ export class ApiError extends Error {
 async function request<T>(
   path: string,
   init: RequestInit = {},
-  retry401 = true,
 ): Promise<T> {
   let resp: Response
 
   try {
     resp = await fetch(`${API_URL}${path}`, {
       ...init,
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         'X-Lifeclip-Session': getSessionToken(),
@@ -55,17 +56,16 @@ async function request<T>(
     )
   }
 
-  if (resp.status === 401 && retry401) {
-    resetSessionToken()
-    return request<T>(path, init, false)
-  }
-
   let body: unknown = null
 
   try {
     body = await resp.json()
   } catch {
     /* empty body */
+  }
+
+  if (resp.status === 401 && !path.endsWith('/login') && !path.endsWith('/signup')) {
+    window.dispatchEvent(new Event('lifeclip:auth-required'))
   }
 
   if (!resp.ok) {
@@ -87,6 +87,23 @@ async function request<T>(
 }
 
 export const api = {
+  signUp: (username: string, email: string, password: string) =>
+    request<AuthUser>('/api/auth/signup', {
+      method: 'POST',
+      body: JSON.stringify({ username, email, password }),
+    }),
+
+  signIn: (identifier: string, password: string) =>
+    request<AuthUser>('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ identifier, password }),
+    }),
+
+  me: () => request<AuthUser>('/api/auth/me'),
+
+  signOut: () =>
+    request<{ signed_out: boolean }>('/api/auth/logout', { method: 'POST' }),
+
   health: () =>
     request<HealthOut>('/api/health'),
 

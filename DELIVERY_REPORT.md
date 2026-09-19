@@ -1,4 +1,4 @@
-# LifeClip 2.0 — Delivery Report
+# LifeClip 2.1 — Delivery Report
 
 Date: 19 September 2026  
 Source: `https://github.com/nandv2007/LifeClip.git`  
@@ -9,6 +9,15 @@ Starting commit: `7299261fd0996d60ed4429d366490f6f1f37ae56`
 The existing LifeClip repository was extended in place into an image-based **capture → understand → organize → act** experience. Existing Cloudinary integration, OCR, categories, fields, actions, sessions, privacy controls, retention and deletion were preserved.
 
 Supported uploads are JPEG, PNG and WebP images up to 10 MB.
+
+## Basic account access
+
+- Sign-up uses a case-insensitively unique username, email address and password.
+- Sign-in accepts either username or email plus password; sign-out revokes the current login.
+- Passwords use Argon2id. Only password hashes and SHA-256 login-token digests are stored.
+- Browser authentication uses revocable HttpOnly, SameSite cookies; Render enables the Secure flag automatically.
+- A browser's existing pre-account clips are claimed on sign-up/sign-in, while a claimed browser token alone cannot access account data.
+- Account deletion removes login sessions, database data and the account, while also attempting Cloudinary asset deletion.
 
 ## Root cause and fix
 
@@ -39,12 +48,17 @@ New signatures send `folder=lifeclip` and an unprefixed UUID as `public_id`. Clo
 
 ## Backward-compatible database extension
 
-The existing schema was not replaced. Startup adds only missing nullable/defaulted smart-library columns to `clips`. Existing sessions, clips, fields, runs and actions are preserved.
+The existing schema was not replaced. Startup adds only missing nullable/defaulted smart-library columns to `clips`, creates the new `users` and `auth_sessions` tables, and additively links existing data sessions to accounts. Existing sessions, clips, fields, runs and actions are preserved.
 
 ## Files added
 
+- `backend/app/routers/auth.py`
+- `backend/app/services/auth_service.py`
+- `backend/tests/test_auth.py`
 - `backend/tests/test_notes_regression.py`
 - `backend/tests/test_library_api.py`
+- `frontend/src/auth/AuthContext.tsx`
+- `frontend/src/screens/AuthScreen.tsx`
 - `frontend/.env.production.example`
 - `DELIVERY_REPORT.md`
 
@@ -53,8 +67,8 @@ The existing schema was not replaced. Startup adds only missing nullable/default
 Backend:
 
 - `backend/app/config.py`, `db.py`, `models.py`, `schemas.py`, `main.py`, `__init__.py`
-- `backend/app/routers/uploads.py`, `clips.py`, `settings.py`
-- `backend/app/services/cloudinary_service.py`, `analyzer.py`
+- `backend/app/routers/auth.py`, `uploads.py`, `clips.py`, `settings.py`
+- `backend/app/services/auth_service.py`, `cloudinary_service.py`, `analyzer.py`
 - `backend/app/services/analysis/classify.py`, `pipeline.py`, `actions_engine.py`
 - `backend/requirements.txt`, `backend/.env.example`
 - `backend/scripts/verify_e2e.py`
@@ -63,7 +77,8 @@ Backend:
 Frontend:
 
 - `frontend/src/lib/api.ts`, `types.ts`, `upload.ts`
-- `frontend/src/screens/CaptureScreen.tsx`, `HistoryScreen.tsx`, `ClipScreen.tsx`, `HomeScreen.tsx`, `ActionScreen.tsx`
+- `frontend/src/screens/AuthScreen.tsx`, `CaptureScreen.tsx`, `HistoryScreen.tsx`, `ClipScreen.tsx`, `HomeScreen.tsx`, `ActionScreen.tsx`
+- `frontend/src/auth/AuthContext.tsx`
 - `frontend/src/components/Clips.tsx`, `ProcessingSteps.tsx`, `Icon.tsx`
 - `frontend/src/App.tsx`, `frontend/src/styles/app.css`
 - `frontend/package.json`, `frontend/package-lock.json`
@@ -76,12 +91,13 @@ Documentation/configuration:
 
 | Check | Result |
 |---|---|
-| Backend pytest suite | **52 passed** |
+| Backend pytest suite | **58 passed** |
 | Real OCR/category samples | **9/9 passed** |
 | HTTP analyzer/API E2E | **40 passed, 0 failed** |
 | Frontend TypeScript + production build | **Passed** |
 | Production dependency audit | **0 vulnerabilities** |
 | Python compile check | **Passed** |
+| Upgrade from the pre-account SQLite schema | **Passed; old session preserved** |
 | Git whitespace check | **Passed** |
 | Live frontend → Vite proxy → API | **Passed** |
 | Live Cloudinary mutation | **Not run: credentials unavailable**; the verification command stopped honestly |
@@ -141,6 +157,8 @@ DATABASE_URL=
 MAX_UPLOAD_BYTES=10485760
 RETENTION_DAYS=90
 ALLOWED_ORIGINS=http://localhost:5173
+AUTH_SESSION_DAYS=30
+AUTH_COOKIE_SECURE=false
 ```
 
 Production frontend, only when hosted separately:

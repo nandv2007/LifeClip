@@ -15,6 +15,9 @@ Both frontend and backend enforce this image-only allow-list. The backend also v
 
 ## Features
 
+- Basic private accounts: sign up with username, email and password; sign in with username or email; sign out and full account deletion.
+- Argon2id password hashing and revocable HttpOnly, SameSite login cookies; raw passwords and login tokens are never stored.
+- Existing pre-account browser clips are safely claimed when the user signs up or signs in.
 - Explicit one-image camera/file selection; no gallery scanning.
 - Signed browser → Cloudinary uploads; the Cloudinary secret remains server-side.
 - Authenticated Cloudinary Admin API verification before persistence.
@@ -74,7 +77,7 @@ React + TypeScript (Vite)
                        SQLite (dev) / PostgreSQL (prod)
 ```
 
-Database entities remain `sessions`, `clips`, `extracted_fields`, `analysis_runs`, `actions` and `session_settings`. Startup adds only missing smart-library metadata columns to `clips`; it never replaces the existing database.
+Database entities include `users`, revocable `auth_sessions`, existing data `sessions`, `clips`, `extracted_fields`, `analysis_runs`, `actions` and `session_settings`. Startup creates the account tables and additively links existing sessions to users; it never replaces existing data.
 
 ## Local development
 
@@ -143,6 +146,10 @@ DATABASE_URL=
 MAX_UPLOAD_BYTES=10485760
 RETENTION_DAYS=90
 ALLOWED_ORIGINS=http://localhost:5173
+
+# Basic login sessions (defaults shown)
+AUTH_SESSION_DAYS=30
+AUTH_COOKIE_SECURE=false
 ```
 
 ### Production frontend environment
@@ -178,6 +185,7 @@ npm audit --omit=dev --audit-level=high
 
 Coverage includes:
 
+- Account sign-up, username/email login, password hashing, cookie sessions, sign-out, duplicate validation, account isolation and pre-account clip claiming.
 - Real OCR checks for event, receipt, ticket, notes, menu, product, notice, unknown and adversarial images.
 - Handwritten, lecture, textbook/reference, revision, formula, definition and diagram notes.
 - Genuine unknown content remaining `other`.
@@ -189,11 +197,15 @@ Coverage includes:
 
 ## API overview
 
-All routes except health use `X-Lifeclip-Session`, an anonymous random browser token.
+Protected routes use a revocable HttpOnly login cookie. `X-Lifeclip-Session` remains as a random pre-account browser token only so existing local clips can be claimed during sign-up/sign-in; a claimed token cannot access account data without the login cookie.
 
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/api/health` | API/database status and whether Cloudinary is configured |
+| POST | `/api/auth/signup` | Create an account with username, email and password |
+| POST | `/api/auth/login` | Sign in with username or email and password |
+| GET | `/api/auth/me` | Return the currently signed-in account |
+| POST | `/api/auth/logout` | Revoke the current browser login |
 | POST | `/api/upload-signature` | Validate JPEG/PNG/WebP and return signed Cloudinary parameters |
 | POST | `/api/clips` | Verify and register a Cloudinary image |
 | GET | `/api/clips?q=&category=` | Global search and smart-library filters |
@@ -205,13 +217,16 @@ All routes except health use `X-Lifeclip-Session`, an anonymous random browser t
 | POST | `/api/clips/:id/study` | Grounded summary, explanation, quiz or flashcards |
 | POST | `/api/actions/:id/confirm` | Confirm a reviewed external/consequential action |
 | DELETE | `/api/clips/:id` | Delete database data and the Cloudinary asset |
-| DELETE | `/api/account` | Delete all data/assets for the session |
+| DELETE | `/api/account` | Delete the account, login sessions, data and Cloudinary assets |
 
 Interactive documentation: `http://localhost:8787/api/docs`.
 
 ## Privacy, grounding and security
 
 - Input is one explicit camera capture or selected image; there is no gallery enumeration.
+- Passwords use Argon2id hashes. Raw passwords and raw authentication tokens are never stored or logged.
+- Login cookies are HttpOnly and SameSite=Lax, become Secure automatically on Render, expire after 30 days by default, and are revoked on sign-out.
+- Account usernames and emails are case-insensitively unique; failed login messages do not reveal whether an identifier exists.
 - The backend secret never enters frontend code or API responses.
 - Cloudinary canonical metadata is fetched through the Admin API; client URL/size claims are not trusted.
 - OCR text is untrusted data. Control and bidirectional spoofing characters are stripped, and prompt-like wording cannot execute instructions.
@@ -219,7 +234,7 @@ Interactive documentation: `http://localhost:8787/api/docs`.
 - Summaries are extractive, quizzes use source sentences, and flashcards use source definitions/sentences.
 - Calendar, map, share, translate, search and other external actions require explicit review or confirmation.
 - Raw OCR text and credentials are not written to logs.
-- Per-image and full-session deletion also attempt Cloudinary deletion and report failures honestly.
+- Per-image and full-account deletion also attempt Cloudinary deletion and report failures honestly.
 
 ## Deployment
 
@@ -250,6 +265,7 @@ Deploy `frontend/dist`, or build it before launching FastAPI and let the backend
 
 ## Honest limitations
 
+- Basic accounts do not yet send email-verification or password-reset messages; those require a configured transactional email provider.
 - OCR quality depends on the image and installed Tesseract language data. Difficult cursive may require review.
 - The classifier is deterministic and explainable rather than a generative vision model; unsupported content remains `other`.
 - One intentional image is processed at a time by design.

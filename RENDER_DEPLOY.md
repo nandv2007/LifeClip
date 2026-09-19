@@ -37,7 +37,7 @@ The response should report:
 - `database`: `ok`
 - `cloudinary_configured`: `true`
 
-Then upload one JPEG, PNG or WebP image and confirm it reaches Ready or Needs review.
+Then create a basic account with a username, email and password, sign out, sign back in with the username or email, and upload one JPEG, PNG or WebP image. Confirm it reaches Ready or Needs review.
 
 ## Operational notes
 

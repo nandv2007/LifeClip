@@ -1,9 +1,13 @@
 """Relational data model.
 
-sessions ─┬─ clips ─┬─ extracted_fields
-          │         ├─ analysis_runs
-          │         └─ actions
-          └─ session_settings
+users ─┬─ auth_sessions
+       └─ sessions ─┬─ clips ─┬─ extracted_fields
+                    │         ├─ analysis_runs
+                    │         └─ actions
+                    └─ session_settings
+
+A user owns one canonical LifeClip session. Keeping clips attached to the
+existing sessions table preserves all historical data and API relationships.
 """
 
 from __future__ import annotations
@@ -34,19 +38,65 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
-class Session(Base):
-    """Anonymous device session — LifeClip works without an account.
+class User(Base):
+    """A basic local LifeClip account.
 
-    The frontend generates a random token once, stores it in localStorage and
-    sends it on every request. Deleting the session deletes everything it owns.
+    Usernames and emails are displayed as entered, while normalized copies are
+    used for case-insensitive uniqueness and login. Passwords are never stored;
+    only Argon2id hashes are persisted.
     """
+
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=_uuid)
+    username: Mapped[str] = mapped_column(String(30))
+    username_normalized: Mapped[str] = mapped_column(String(30), unique=True, index=True)
+    email: Mapped[str] = mapped_column(String(254))
+    email_normalized: Mapped[str] = mapped_column(String(254), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+
+    session: Mapped["Session"] = relationship(
+        back_populates="user", cascade="all, delete-orphan", uselist=False
+    )
+    auth_sessions: Mapped[list["AuthSession"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+
+
+class AuthSession(Base):
+    """Revocable browser login. Only a SHA-256 token digest is stored."""
+
+    __tablename__ = "auth_sessions"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=_uuid)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    user: Mapped[User] = relationship(back_populates="auth_sessions")
+
+
+class Session(Base):
+    """Canonical data container for an account or a pre-account browser."""
 
     __tablename__ = "sessions"
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True, default=_uuid)
+    user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True, nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
+    user: Mapped[User | None] = relationship(back_populates="session")
     clips: Mapped[list["Clip"]] = relationship(
         back_populates="session", cascade="all, delete-orphan"
     )

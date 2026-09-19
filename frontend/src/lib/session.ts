@@ -1,5 +1,5 @@
-// Anonymous session token: generated once, stored locally, sent as a header.
-// No account needed; "Delete my data" wipes server-side data and regenerates.
+// Pre-account browser token: generated once and sent as a header so captures
+// made before authentication can be claimed. It cannot replace login auth.
 
 const KEY = 'lifeclip.session'
 

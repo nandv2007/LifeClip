@@ -7,7 +7,7 @@ import { PRIVACY_MESSAGE } from '../lib/types'
 import { Icon } from '../components/Icon'
 import { useToast } from '../components/Toast'
 import { Modal } from '../components/Modal'
-import { resetSessionToken } from '../lib/session'
+import { useAuth } from '../auth/AuthContext'
 
 const RETENTION_OPTIONS = [
   { days: 30, label: '30 days' },
@@ -18,6 +18,7 @@ const RETENTION_OPTIONS = [
 
 export default function SettingsScreen() {
   const { toast } = useToast()
+  const { user, signOut, clearUser } = useAuth()
   const [settings, setSettings] = useState<SettingsOut | null>(null)
   const [health, setHealth] = useState<HealthOut | null>(null)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -61,21 +62,37 @@ export default function SettingsScreen() {
     setDeleting(true)
     try {
       const res = await api.deleteAccount()
-      resetSessionToken()
-      toast(res.message || 'All data deleted')
+      clearUser()
+      toast(res.message || 'Account deleted')
       setDeleteOpen(false)
       window.location.href = '/'
     } catch (err) {
       setDeleting(false)
       toast((err as Error).message, 'error')
     }
-  }, [toast])
+  }, [clearUser, toast])
 
   return (
     <div className="stack-lg" style={{ paddingTop: 26 }}>
       <header>
         <h1 className="h1" style={{ fontSize: 'clamp(24px, 5.6vw, 30px)' }}>Settings</h1>
       </header>
+
+      {/* ---------------------------- account ---------------------------- */}
+      <section className="card stack" aria-labelledby="settings-account">
+        <h2 className="h3" id="settings-account">
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+            <Icon name="shield-check" size={19} /> Account
+          </span>
+        </h2>
+        <div className="account-details">
+          <div><span>Username</span><strong>{user?.username}</strong></div>
+          <div><span>Email</span><strong>{user?.email}</strong></div>
+        </div>
+        <button className="btn btn--ghost" style={{ alignSelf: 'flex-start' }} onClick={() => void signOut()}>
+          Sign out
+        </button>
+      </section>
 
       {/* ---------------------------- privacy ---------------------------- */}
       <section className="card stack" aria-labelledby="settings-privacy">
@@ -89,7 +106,7 @@ export default function SettingsScreen() {
           <div>• Only photos you explicitly capture or pick are uploaded — one at a time.</div>
           <div>• Your photos are stored securely in Cloudinary under the “lifeclip” folder.</div>
           <div>• Extracted text is stored so History and study tools work. You can turn that off below.</div>
-          <div>• No account is needed; everything is tied to an anonymous on-device session.</div>
+          <div>• Your private library is available only after signing in to your account.</div>
         </div>
         <div className="switch-row" style={{ borderTop: '1px solid var(--line)' }}>
           <div>
@@ -136,16 +153,16 @@ export default function SettingsScreen() {
       <section className="card stack" aria-labelledby="settings-data">
         <h2 className="h3" id="settings-data">
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
-            <Icon name="trash" size={18} /> Delete data
+            <Icon name="trash" size={18} /> Delete account
           </span>
         </h2>
         <p className="micro" style={{ margin: 0 }}>
-          Permanently delete every photo from Cloudinary, all extracted information, and your
-          session. Nothing is kept.
+          Permanently delete your account, every photo from Cloudinary, and all extracted
+          information. Nothing is kept.
         </p>
         <button className="btn btn--danger-ghost" style={{ alignSelf: 'flex-start' }} onClick={() => setDeleteOpen(true)}>
           <Icon name="trash" size={17} />
-          Delete all my data
+          Delete my account
         </button>
       </section>
 
@@ -200,12 +217,12 @@ export default function SettingsScreen() {
 
       {deleteOpen && (
         <Modal
-          title="Delete all your data?"
+          title="Delete your account?"
           onClose={() => !deleting && setDeleteOpen(false)}
           footer={
             <>
               <button className="btn btn--danger btn--block" onClick={() => void deleteAll()} disabled={deleting}>
-                {deleting ? 'Deleting…' : 'Yes, delete everything'}
+                {deleting ? 'Deleting…' : 'Yes, delete my account'}
               </button>
               <button className="btn btn--ghost btn--block" onClick={() => setDeleteOpen(false)} disabled={deleting}>
                 Cancel
@@ -213,8 +230,8 @@ export default function SettingsScreen() {
             </>
           }
         >
-          Every LifeClip, its Cloudinary photo, all extracted information and your session will be
-          permanently deleted. This cannot be undone.
+          Your account, every LifeClip, its Cloudinary photo, and all extracted information will
+          be permanently deleted. This cannot be undone.
         </Modal>
       )}
     </div>

@@ -2,6 +2,8 @@ import { useEffect } from 'react'
 import { BrowserRouter, Link, NavLink, Route, Routes, useNavigate } from 'react-router-dom'
 import { ToastProvider } from './components/Toast'
 import { Icon, Logo } from './components/Icon'
+import { AuthProvider, useAuth } from './auth/AuthContext'
+import AuthScreen from './screens/AuthScreen'
 import HomeScreen from './screens/HomeScreen'
 import CaptureScreen from './screens/CaptureScreen'
 import ClipScreen from './screens/ClipScreen'
@@ -19,6 +21,7 @@ function applyA11yPrefs() {
 
 function Shell() {
   const navigate = useNavigate()
+  const { user, signOut } = useAuth()
   return (
     <>
       <a href="#main" className="skip-link">
@@ -40,6 +43,16 @@ function Shell() {
             <NavLink to="/settings" aria-label="Settings" title="Settings">
               <Icon name="gear" />
             </NavLink>
+            <span className="account-chip" title={user?.email}>{user?.username}</span>
+            <button
+              type="button"
+              className="header-signout"
+              onClick={() => void signOut()}
+              aria-label="Sign out"
+              title="Sign out"
+            >
+              Sign out
+            </button>
           </nav>
         </div>
       </header>
@@ -60,6 +73,19 @@ function Shell() {
   )
 }
 
+function AuthGate() {
+  const { user, loading } = useAuth()
+  if (loading) {
+    return (
+      <main className="auth-loading" aria-live="polite">
+        <Logo size={38} />
+        <span>Opening LifeClip…</span>
+      </main>
+    )
+  }
+  return user ? <Shell /> : <AuthScreen />
+}
+
 export default function App() {
   useEffect(() => {
     applyA11yPrefs()
@@ -78,7 +104,9 @@ export default function App() {
   return (
     <ToastProvider>
       <BrowserRouter>
-        <Shell />
+        <AuthProvider>
+          <AuthGate />
+        </AuthProvider>
       </BrowserRouter>
     </ToastProvider>
   )

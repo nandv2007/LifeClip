@@ -12,6 +12,13 @@ export type Category =
 
 export type ClipStatus = 'uploaded' | 'queued' | 'analyzing' | 'ready' | 'partial' | 'failed'
 
+export interface AuthUser {
+  id: string
+  username: string
+  email: string
+  created_at: string
+}
+
 export interface HealthOut {
   status: string
   version: string

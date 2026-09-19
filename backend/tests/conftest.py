@@ -22,7 +22,7 @@ from app.main import app  # noqa: E402
 SAMPLES = Path(__file__).resolve().parent.parent.parent / "samples"
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def client():
     with TestClient(app) as c:
         yield c

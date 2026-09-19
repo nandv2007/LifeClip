@@ -49,6 +49,13 @@ class Settings(BaseSettings):
     render_external_hostname: str = ""
     session_header: str = "x-lifeclip-session"
 
+    # --- Basic account authentication ---
+    auth_cookie_name: str = "lifeclip_auth"
+    auth_session_days: int = 30
+    # Local HTTP development must leave this false. Render is detected below
+    # and always uses Secure cookies automatically.
+    auth_cookie_secure: bool = False
+
     # --- Analysis ---
     analysis_timeout_seconds: int = 120
     image_fetch_timeout_seconds: int = 25
@@ -77,6 +84,10 @@ class Settings(BaseSettings):
         if self.render_external_hostname.strip():
             return [f"https://{self.render_external_hostname.strip()}"]
         return ["*"]
+
+    @property
+    def secure_auth_cookie(self) -> bool:
+        return self.auth_cookie_secure or bool(self.render_external_hostname.strip())
 
 
 @lru_cache
