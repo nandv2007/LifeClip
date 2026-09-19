@@ -37,8 +37,10 @@ def test_signature_matches_cloudinary_algorithm(monkeypatch):
 
     # Upload URL targets the configured cloud's real upload endpoint.
     assert params.upload_url == f"https://api.cloudinary.com/v1_1/{settings.cloudinary_cloud_name}/image/upload"
-    # Public id lives under the lifeclip/ prefix.
-    assert params.public_id.startswith("lifeclip/")
+    # The folder is sent exactly once. Cloudinary returns the final asset as
+    # lifeclip/<uuid>; prefixing public_id too would create lifeclip/lifeclip/.
+    assert params.folder == "lifeclip"
+    assert "/" not in params.public_id
 
 
 def test_secret_never_leaks_in_sign_params(monkeypatch):

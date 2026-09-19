@@ -41,6 +41,7 @@ const paths: Record<string, JSX.Element> = {
   'arrow-right': <path d="M5 12h14m-6-7 7 7-7 7" />,
   check: <path d="m5 12.5 4.5 4.5L19 7.5" />,
   x: <path d="M6 6l12 12M18 6 6 18" />,
+  plus: <path d="M12 5v14M5 12h14" />,
   pencil: <path d="M15.8 4.8a2.1 2.1 0 0 1 3 3L8.4 18.2 4.5 19.2l1-3.9Z" />,
   trash: (
     <>

@@ -89,6 +89,17 @@ class Clip(Base):
     original_filename: Mapped[str] = mapped_column(String(255), default="")
     mime_type: Mapped[str] = mapped_column(String(64), default="image/jpeg")
 
+    # --- Smart-library metadata (safe defaults keep existing rows compatible) ---
+    subject: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    topic: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    tags_json: Mapped[str] = mapped_column(Text, default="[]", server_default="[]")
+    headings_json: Mapped[str] = mapped_column(Text, default="[]", server_default="[]")
+    concepts_json: Mapped[str] = mapped_column(Text, default="[]", server_default="[]")
+    extracted_text_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    ocr_used: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
+    analysis_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    analysis_warnings_json: Mapped[str] = mapped_column(Text, default="[]", server_default="[]")
+
     # --- Status lifecycle: uploaded -> queued -> analyzing -> ready|partial|failed ---
     status: Mapped[str] = mapped_column(String(24), default="uploaded", index=True)
 

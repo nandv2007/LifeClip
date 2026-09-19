@@ -75,7 +75,9 @@ def build_signed_upload(settings: Settings, original_filename: str) -> SignedUpl
     _configure(settings)
     timestamp = int(time.time())
     folder = settings.cloudinary_folder
-    public_id = f"{folder}/{uuid.uuid4().hex}"
+    # `folder` is already included in Cloudinary's final public_id. Sending a
+    # second `lifeclip/` prefix here produced lifeclip/lifeclip/... paths.
+    public_id = uuid.uuid4().hex
     tags = "lifeclip,app-upload"
     # Non-sensitive provenance metadata stored alongside the asset.
     safe_name = (original_filename or "capture")[:80].replace("=", "").replace("&", "")
@@ -135,7 +137,7 @@ def verify_and_fetch_asset(settings: Settings, public_id: str) -> dict:
     }
 
 
-def delete_asset(settings: Settings, public_id: str) -> bool:
+def delete_asset(settings: Settings, public_id: str, resource_type: str = "image") -> bool:
     """Permanently delete the asset from Cloudinary. Returns True on success.
     Failures are reported honestly — the database row is removed regardless so
     the clip disappears from LifeClip views, and the caller surfaces a warning.
@@ -145,7 +147,8 @@ def delete_asset(settings: Settings, public_id: str) -> bool:
     except CloudinaryNotConfigured:
         return False
     try:
-        result = cloudinary.uploader.destroy(public_id, resource_type="image")
+        safe_type = resource_type if resource_type in {"image", "raw", "video"} else "image"
+        result = cloudinary.uploader.destroy(public_id, resource_type=safe_type)
         return result.get("result") == "ok"
     except Exception:
         return False

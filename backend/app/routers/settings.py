@@ -58,7 +58,7 @@ def delete_account(session: Session = Depends(get_session), db: OrmSession = Dep
     clips = db.query(Clip).filter(Clip.session_id == session.id).all()
     cloud_deleted = 0
     for c in clips:
-        if delete_asset(settings, c.cloudinary_public_id):
+        if delete_asset(settings, c.cloudinary_public_id, c.cloudinary_resource_type):
             cloud_deleted += 1
     db.delete(session)  # cascades to clips, fields, actions, runs, settings
     db.commit()

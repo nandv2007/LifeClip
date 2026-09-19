@@ -10,13 +10,7 @@ export type Category =
   | 'document'
   | 'other'
 
-export type ClipStatus =
-  | 'uploaded'
-  | 'queued'
-  | 'analyzing'
-  | 'ready'
-  | 'partial'
-  | 'failed'
+export type ClipStatus = 'uploaded' | 'queued' | 'analyzing' | 'ready' | 'partial' | 'failed'
 
 export interface HealthOut {
   status: string
@@ -63,29 +57,31 @@ export interface ClipListItem {
   status: ClipStatus
   category: Category | null
   title: string | null
+  original_filename: string
+  mime_type: string
+  subject: string | null
+  topic: string | null
+  tags: string[]
+  extracted_text_status: string | null
+  analysis_confidence: number | null
   thumbnail_url: string
   preview_url: string
   created_at: string
 }
 
-export interface ClipDetail {
-  id: string
-  status: ClipStatus
-  category: Category | null
-  title: string | null
-  original_filename: string
-  mime_type: string
+export interface ClipDetail extends ClipListItem {
   byte_size: number
   width: number
   height: number
   secure_url: string
-  preview_url: string
-  thumbnail_url: string
   raw_text: string | null
   analysis_error: string | null
+  ocr_used: boolean
+  headings: string[]
+  concepts: string[]
+  analysis_warnings: string[]
   fields: FieldOut[]
   actions: ActionOut[]
-  created_at: string
   updated_at: string
 }
 

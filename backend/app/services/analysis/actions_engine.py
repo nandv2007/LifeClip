@@ -90,7 +90,10 @@ def suggest_actions(category: str, fields: dict[str, str]) -> list[ActionSpec]:
         add("copy_text", "Copy Text", "Copy everything we read.", False)
 
     elif category == "document":
-        add("summarize", "Summarize", "Get the key points of this document.", True)
+        add("summarize", "Summarize", "Get source-grounded key points from this document.", True)
+        add("explain", "Explain Simply", "See its strongest source passages and key terms.", True)
+        add("quiz", "Quiz Me", "Build practice questions only from extracted sentences.", True)
+        add("flashcards", "Create Flashcards", "Make cards from definitions or source sentences.", False)
         if _has(fields, "deadline", "date"):
             add("reminder", "Set a Reminder", "We found a date/deadline in this document.", True)
         add("save", "Save Document", "Keep this document in your LifeClips.", False)

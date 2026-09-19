@@ -32,8 +32,8 @@ export default function HomeScreen() {
           Every photo should be&nbsp;actionable.
         </h1>
         <p className="lede">
-          Capture a poster, receipt, ticket or note. LifeClip reads it, pulls out what matters, and
-          suggests what to do next.
+          Capture or choose a photo. LifeClip extracts the real text, understands what it is,
+          organizes it, and suggests what to do next.
         </p>
         <div className="btn-row" style={{ marginTop: 26 }}>
           <Link to="/capture?mode=camera" className="btn">
@@ -62,7 +62,7 @@ export default function HomeScreen() {
         <div className="section-title">
           <h2 id="recent-heading">Your recent LifeClips</h2>
           {recent && recent.length > 0 && (
-            <Link to="/history" className="micro" style={{ fontWeight: 650, color: 'var(--accent)' }}>
+            <Link to="/library" className="micro" style={{ fontWeight: 650, color: 'var(--accent)' }}>
               View all
             </Link>
           )}

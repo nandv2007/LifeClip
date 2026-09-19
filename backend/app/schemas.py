@@ -1,4 +1,4 @@
-"""Pydantic request/response schemas — the API contract."""
+"""Pydantic request/response schemas — the LifeClip API contract."""
 
 from __future__ import annotations
 
@@ -12,16 +12,14 @@ CATEGORIES = (
 )
 
 
-# ---------- Health ----------
 class HealthOut(BaseModel):
     status: str
     version: str
-    database: str  # "ok" | "error"
+    database: str
     cloudinary_configured: bool
     time: datetime
 
 
-# ---------- Upload signing ----------
 class UploadSignatureIn(BaseModel):
     filename: str = Field(min_length=1, max_length=255)
     mime_type: str = Field(min_length=3, max_length=64)
@@ -41,11 +39,8 @@ class UploadSignatureOut(BaseModel):
     max_upload_bytes: int
 
 
-# ---------- Clips ----------
 class ClipCreateIn(BaseModel):
-    """Sent by the browser AFTER the direct-to-Cloudinary upload succeeds.
-    The server re-verifies the asset with the Admin API instead of trusting
-    these client-provided values."""
+    """Sent after direct Cloudinary upload; the server verifies the asset."""
 
     public_id: str = Field(min_length=1, max_length=255)
     original_filename: str = Field(default="", max_length=255)
@@ -76,46 +71,63 @@ class ClipListItem(BaseModel):
     status: str
     category: str | None
     title: str | None
+    original_filename: str
+    mime_type: str
+    subject: str | None
+    topic: str | None
+    tags: list[str]
+    extracted_text_status: str | None
+    analysis_confidence: float | None
     thumbnail_url: str
     preview_url: str
     created_at: datetime
 
 
-class ClipDetail(BaseModel):
-    id: str
-    status: str
-    category: str | None
-    title: str | None
-    original_filename: str
-    mime_type: str
+class ClipDetail(ClipListItem):
     byte_size: int
     width: int
     height: int
     secure_url: str
-    preview_url: str
-    thumbnail_url: str
     raw_text: str | None
     analysis_error: str | None
+    ocr_used: bool
+    headings: list[str]
+    concepts: list[str]
+    analysis_warnings: list[str]
     fields: list[FieldOut]
     actions: list[ActionOut]
-    created_at: datetime
     updated_at: datetime
 
 
 class ClipPatchIn(BaseModel):
     title: str | None = Field(default=None, max_length=255)
     category: str | None = None
+    subject: str | None = Field(default=None, max_length=120)
+    topic: str | None = Field(default=None, max_length=200)
+    tags: list[str] | None = Field(default=None, max_length=20)
 
     @field_validator("category")
     @classmethod
-    def _valid_category(cls, v):
-        if v is not None and v not in CATEGORIES:
+    def _valid_category(cls, value):
+        if value is not None and value not in CATEGORIES:
             raise ValueError(f"category must be one of {CATEGORIES}")
-        return v
+        return value
+
+    @field_validator("tags")
+    @classmethod
+    def _clean_tags(cls, value):
+        if value is None:
+            return value
+        cleaned: list[str] = []
+        for raw in value:
+            tag = " ".join(str(raw).split()).strip("#,")[:40]
+            if tag and tag.casefold() not in {item.casefold() for item in cleaned}:
+                cleaned.append(tag)
+        return cleaned[:20]
 
 
 class FieldPatchItem(BaseModel):
-    id: str | None = None  # existing field id; None = create new
+    id: str | None = None
     name: str = Field(min_length=1, max_length=64)
     label: str = Field(default="", max_length=128)
     value: str = Field(default="", max_length=2000)
@@ -125,14 +137,13 @@ class FieldsPatchIn(BaseModel):
     fields: list[FieldPatchItem] = Field(min_length=1, max_length=60)
 
 
-# ---------- Analysis ----------
 class AnalyzeIn(BaseModel):
     force: bool = False
 
 
 class AnalysisStatusOut(BaseModel):
     clip_id: str
-    status: str          # clip-level status
+    status: str
     run_id: str | None
     run_status: str | None
     phase: str | None
@@ -140,21 +151,15 @@ class AnalysisStatusOut(BaseModel):
     error: str | None
 
 
-# ---------- Actions ----------
 class ActionConfirmIn(BaseModel):
-    """Edited, user-approved payload for a consequential action (e.g. an
-    edited calendar event). The server re-validates before accepting."""
     payload: dict[str, Any] = Field(default_factory=dict)
 
 
 class ActionConfirmOut(BaseModel):
     id: str
     status: str
-    # For calendar/reminder the server produces a downloadable .ics file:
     download_url: str | None = None
-    # For actions that produce text content (summary/copy):
     content: str | None = None
-    # For actions that open an external site (maps/search/translate):
     external_url: str | None = None
 
 
@@ -167,7 +172,6 @@ class StudyOut(BaseModel):
     items: list[dict[str, Any]]
 
 
-# ---------- Settings ----------
 class SettingsOut(BaseModel):
     retention_days: int
     save_extracted_text: bool

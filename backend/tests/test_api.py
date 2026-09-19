@@ -38,6 +38,13 @@ class TestUploadValidation:
         assert r.status_code == 415
         assert "JPEG" in r.json()["error"]["message"]
 
+    def test_rejects_pdf_uploads(self, client, session_headers):
+        r = client.post("/api/upload-signature", headers=session_headers, json={
+            "filename": "notes.pdf", "mime_type": "application/pdf", "byte_size": 1000,
+        })
+        assert r.status_code == 415
+        assert "JPEG" in r.json()["error"]["message"]
+
     def test_rejects_oversized(self, client, session_headers):
         r = client.post("/api/upload-signature", headers=session_headers, json={
             "filename": "huge.jpg", "mime_type": "image/jpeg", "byte_size": 60 * 1024 * 1024,

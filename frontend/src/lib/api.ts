@@ -14,7 +14,11 @@ import type {
   UploadSignatureOut,
 } from './types'
 
-const API_URL = import.meta.env.VITE_API_URL || ''
+// Local development ALWAYS stays on same-origin /api, which Vite proxies to
+// FastAPI :8787. VITE_API_URL is production-only so a deployment variable can
+// never silently send local files to a stale/different analysis backend.
+const configuredApi = String(import.meta.env.VITE_API_URL || '').trim()
+const API_URL = (import.meta.env.DEV ? '' : configuredApi).replace(/\/$/, '')
 
 export class ApiError extends Error {
   code: string
@@ -145,6 +149,9 @@ export const api = {
     patch: {
       title?: string
       category?: string
+      subject?: string
+      topic?: string
+      tags?: string[]
     },
   ) =>
     request<ClipDetail>(

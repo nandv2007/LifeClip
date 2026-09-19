@@ -224,7 +224,8 @@ def main() -> int:
         r = client.post("/api/upload-signature", headers=headers,
                         json={"filename": "x.jpg", "mime_type": "image/jpeg", "byte_size": 1000})
         check("upload signature issued", r.status_code == 200)
-        check("public_id under lifeclip/ folder", r.json()["public_id"].startswith("lifeclip/"))
+        check("folder and public_id avoid a duplicate prefix",
+              r.json()["folder"] == "lifeclip" and "/" not in r.json()["public_id"])
         check("api_secret never in signature response", "api_secret" not in r.text
               and "E2E-PLACEHOLDER-NOT-A-REAL-SECRET" not in r.text)
         r = client.get("/api/clips", headers={"X-Lifeclip-Session": "someone-else-999"})

@@ -88,11 +88,16 @@ export default function CaptureScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const acceptFile = useCallback((file: File) => {
+  const acceptFile = useCallback((incoming: File) => {
+    // Some mobile pickers omit MIME even for valid files. Infer only from a
+    // known extension, then the backend still verifies the real Cloudinary format.
+    const extension = incoming.name.toLowerCase().split('.').pop() || ''
+    const inferred: Record<string, string> = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' }
+    const file = incoming.type ? incoming : new File([incoming], incoming.name, { type: inferred[extension] || '' })
     if (!ACCEPTED_MIME.includes(file.type)) {
       setStage({
         kind: 'invalid',
-        message: `“${file.name}” isn’t a supported photo type. LifeClip works with JPEG, PNG or WebP images.`,
+        message: `“${file.name}” isn’t supported. Choose a JPEG, PNG or WebP image.`,
       })
       return
     }
@@ -211,8 +216,7 @@ export default function CaptureScreen() {
               Drop a photo here
             </p>
             <p className="micro" style={{ margin: 0 }}>
-              A poster, receipt, ticket, note, menu, label or notice. JPEG, PNG or WebP, up to 10
-              MB.
+              Notes, receipts, tickets, posters, menus or documents. JPEG, PNG or WebP, up to 10 MB.
             </p>
             <div className="btn-row" style={{ marginTop: 22 }}>
               <button className="btn" onClick={() => fileInputRef.current?.click()}>

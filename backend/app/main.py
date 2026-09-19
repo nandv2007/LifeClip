@@ -19,6 +19,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import __version__
 from .config import get_settings
@@ -148,7 +149,7 @@ def _purge_expired() -> None:
             if created and created.tzinfo is None:
                 created = created.replace(tzinfo=timezone.utc)
             if created and now - created > timedelta(days=days):
-                delete_asset(settings, clip.cloudinary_public_id)
+                delete_asset(settings, clip.cloudinary_public_id, clip.cloudinary_resource_type)
                 db.delete(clip)
                 purged += 1
         if purged:
@@ -186,6 +187,22 @@ app.include_router(settings_router.router)
 
 
 # ------------------------------------------- optional built frontend (prod)
+class SPAStaticFiles(StaticFiles):
+    """Serve index.html for client-side routes, but never mask unknown APIs."""
+
+    async def get_response(self, path: str, scope):
+        try:
+            response = await super().get_response(path, scope)
+        except StarletteHTTPException as exc:
+            if exc.status_code != 404 or path.lstrip("/").startswith("api/"):
+                raise
+            return await super().get_response("index.html", scope)
+
+        if response.status_code == 404 and not path.lstrip("/").startswith("api/"):
+            return await super().get_response("index.html", scope)
+        return response
+
+
 _dist = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
 if _dist.is_dir():
-    app.mount("/", StaticFiles(directory=_dist, html=True), name="frontend")
+    app.mount("/", SPAStaticFiles(directory=_dist, html=True), name="frontend")

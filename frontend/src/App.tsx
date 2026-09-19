@@ -34,8 +34,8 @@ function Shell() {
             <NavLink to="/" end aria-label="Home" title="Home">
               <Icon name="home" />
             </NavLink>
-            <NavLink to="/history" aria-label="History" title="History">
-              <Icon name="clock" />
+            <NavLink to="/library" aria-label="Smart library" title="Smart library">
+              <Icon name="layers" />
             </NavLink>
             <NavLink to="/settings" aria-label="Settings" title="Settings">
               <Icon name="gear" />
@@ -49,6 +49,7 @@ function Shell() {
           <Route path="/capture" element={<CaptureScreen />} />
           <Route path="/clip/:id" element={<ClipScreen />} />
           <Route path="/clip/:id/action/:actionId" element={<ActionScreen />} />
+          <Route path="/library" element={<HistoryScreen />} />
           <Route path="/history" element={<HistoryScreen />} />
           <Route path="/settings" element={<SettingsScreen />} />
           <Route path="/404" element={<NotFoundScreen onHome={() => navigate('/')} />} />

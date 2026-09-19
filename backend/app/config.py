@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     database_url: str = ""
 
     # --- Uploads ---
-    max_upload_bytes: int = 10 * 1024 * 1024  # 10 MB
+    max_upload_bytes: int = 10 * 1024 * 1024  # bounded image uploads
     allowed_mime_types: tuple[str, ...] = (
         "image/jpeg",
         "image/png",
@@ -44,6 +44,9 @@ class Settings(BaseSettings):
 
     # --- Networking / security ---
     allowed_origins: str = ""  # comma-separated; empty = allow all in dev
+    # Render supplies this automatically. It lets a production deployment use
+    # its own HTTPS origin without hardcoding a service name or URL.
+    render_external_hostname: str = ""
     session_header: str = "x-lifeclip-session"
 
     # --- Analysis ---
@@ -69,9 +72,11 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins(self) -> list[str]:
-        if not self.allowed_origins.strip():
-            return ["*"]
-        return [o.strip() for o in self.allowed_origins.split(",") if o.strip()]
+        if self.allowed_origins.strip():
+            return [o.strip() for o in self.allowed_origins.split(",") if o.strip()]
+        if self.render_external_hostname.strip():
+            return [f"https://{self.render_external_hostname.strip()}"]
+        return ["*"]
 
 
 @lru_cache

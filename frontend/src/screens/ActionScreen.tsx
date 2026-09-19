@@ -637,7 +637,7 @@ function StudyView({ clip, mode, toast, onDone }: CommonProps & { mode: StudyOut
   return (
     <div className="stack-lg">
       <p className="micro" style={{ margin: 0 }}>
-        Made only from the text we read in your photo — check it against the original when it
+        Made only from the text extracted from your file — check it against the original when it
         matters.
       </p>
       <div role="list">

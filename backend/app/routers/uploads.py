@@ -27,8 +27,8 @@ def upload_signature(payload: UploadSignatureIn, _: Session = Depends(get_sessio
             detail={
                 "code": "unsupported_type",
                 "message": (
-                    "LifeClip works with photos: JPEG, PNG or WebP. "
-                    "That file type isn't supported yet."
+                    "LifeClip supports JPEG, PNG and WebP images. "
+                    "That file type isn't supported."
                 ),
             },
         )
@@ -38,7 +38,7 @@ def upload_signature(payload: UploadSignatureIn, _: Session = Depends(get_sessio
             status_code=413,
             detail={
                 "code": "file_too_large",
-                "message": f"That file is too large. Please choose an image under {mb} MB.",
+                "message": f"That image is too large. Please choose an image under {mb} MB.",
             },
         )
 
